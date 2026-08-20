@@ -556,7 +556,7 @@ export default function CalendarPage() {
                   
                   {/* 下方原本顯示人數的區塊維持不動 */}
                   {totalPlayers > 0 ? (
-                    <span className={`text-[11px] font-bold leading-none flex items-center justify-center mt-1 ${hasSignedUp ? 'text-blue-700' : 'text-gray-500'}`}>
+                    <span className={`text-[10px] font-bold leading-none flex items-center justify-center mt-1 ${hasSignedUp ? 'text-gray-700' : 'text-gray-500'}`}>
                       <span>👤</span>
                       <span className="ml-0.5">{totalPlayers}</span>
                       
