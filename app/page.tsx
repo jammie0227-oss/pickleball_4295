@@ -106,8 +106,37 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 relative overflow-hidden">
       
-      <h1 className="text-2xl font-bold text-gray-800 mb-10 tracking-wide shadow-sm bg-white py-3 px-6 rounded-full">
-        🎾 新竹匹克球揪團
+      <h1 className="text-2xl font-bold text-gray-800 mb-10 tracking-wide shadow-sm bg-white py-3 px-6 rounded-full flex items-center justify-center space-x-2">
+        
+        {/* ✨ 專屬匹克球 SVG 圖示 (進化版：正宗螢光亮黃球！) */}
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 24 24" 
+          width="28" 
+          height="28" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+          className="drop-shadow-sm flex-shrink-0"
+        >
+          {/* 匹克球拍的拍面 */}
+          <rect x="5" y="2" width="10" height="12" rx="4" fill="#FFA500" stroke="#E67E22" />
+          {/* 球拍的握把 */}
+          <rect x="8" y="14" width="4" height="8" rx="1" fill="#8B4513" stroke="#5C2E0B" />
+          
+          {/* 🎾 旁邊的洞洞匹克球 (改為超亮的螢光黃 #EAFF00) */}
+          <circle cx="19" cy="8" r="3.5" fill="#EAFF00" stroke="#C2D100" strokeWidth="1" />
+          
+          {/* 匹克球上的洞洞 (改為深黃綠色，更有陰影感，並取消邊框) */}
+          <circle cx="18" cy="6.5" r="0.6" fill="#99A600" stroke="none" />
+          <circle cx="20.5" cy="8" r="0.6" fill="#99A600" stroke="none" />
+          <circle cx="18.5" cy="9.5" r="0.6" fill="#99A600" stroke="none" />
+          <circle cx="17.5" cy="8" r="0.5" fill="#99A600" stroke="none" />
+        </svg>
+
+        <span>新竹匹克球揪團</span>
       </h1>
 
       <div className="grid grid-cols-3 gap-6 w-full max-w-sm">
