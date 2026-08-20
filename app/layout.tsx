@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "來來來打匹克球 🥒",
-  description: "快來卡位打球啦！",
+  title: "🥒來來來打匹克球🥒",
+  description: "快來打球啦！",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

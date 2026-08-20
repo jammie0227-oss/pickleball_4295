@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { collection, doc, onSnapshot, setDoc, updateDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useRouter } from 'next/navigation';
 
 const ANIMAL_OPTIONS = [
   // 🐾 動物與海洋世界
@@ -34,6 +35,7 @@ const ANIMAL_OPTIONS = [
   '🌟', '🔥', '🚀', '🛸', '🌈', '🍀', '🌻', '🌲', '👑', '💎', '⚡', '🌙'
 ];
 
+
 const formatDate = (date: Date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -44,6 +46,7 @@ const formatDate = (date: Date) => {
 const getEmptyDayPricing = () => Array(24).fill({ isOpen: false, price: 0 });
 
 export default function CalendarPage() {
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
@@ -76,6 +79,29 @@ export default function CalendarPage() {
     setIsMultiSelectMode(false);
     setMultiSelectedDates([]);
     setMultiSelectCount(1);
+  };
+  // ✨ 管理員專屬：強制幫別人取消報名
+  const handleAdminRemovePlayer = async (dateStr: string, playerToRemove: any) => {
+    if (!confirm(`【管理員權限】\n確定要強制取消「${playerToRemove.name}」的報名嗎？`)) return;
+    
+    const docRef = doc(db, 'events', dateStr);
+    const eventData = monthData[dateStr];
+    if (!eventData) return;
+
+    // 濾掉這個人，保留其他人
+    const updatedPlayers = eventData.players.filter((p: any) => p.id !== playerToRemove.id);
+    
+    // 更新回資料庫
+    await setDoc(docRef, { players: updatedPlayers }, { merge: true });
+    alert(`✅ 已成功取消 ${playerToRemove.name} 的報名！`);
+  };
+
+  // ✨ 切換帳號與登出
+  const handleLogout = () => {
+    if (confirm('確定要登出並切換帳號嗎？')) {
+      localStorage.removeItem('pickleball_user'); // 刪除記憶
+      router.push('/'); // 導回首頁
+    }
   };
 
   useEffect(() => {
@@ -167,6 +193,9 @@ export default function CalendarPage() {
   if (!currentUser) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">載入中...</div>;
 
   const currentFullUser = allUsers.find(u => u.id === currentUser.id) || currentUser;
+
+  // ✨ 新增：判斷當前使用者是不是最高管理員 (只要頭像是 ⭐️ 就是老大)
+  const isAdmin = currentFullUser?.avatar === '🌟';
 
   const selectedDayData = selectedDateStr ? (monthData[selectedDateStr] || { players: [] }) : { players: [] };
   const hasSignedUpSelected = selectedDayData.players.some((user: any) => user.id === currentUser.id);
@@ -309,8 +338,14 @@ export default function CalendarPage() {
           newPlayers = newPlayers.map((p: any) => p.id === currentUser.id ? { ...p, name: newName, avatar: editAvatar } : p);
           needsUpdate = true;
         }
+        // ✨ 替換成這段：過濾掉 undefined，保證 Firebase 開心
         if (needsUpdate) {
-          updatePromises.push(updateDoc(doc(db, 'events', eventDoc.id), { players: newPlayers, host: newHost }));
+          const updatePayload: any = { players: newPlayers };
+          // 只有在 newHost 真的有東西的時候，才把它加進去更新清單
+          if (newHost !== undefined) {
+            updatePayload.host = newHost;
+          }
+          updatePromises.push(updateDoc(doc(db, 'events', eventDoc.id), updatePayload));
         }
       }
     });
@@ -396,7 +431,13 @@ export default function CalendarPage() {
     const courts = event.hostCourtsInfo?.map((c:any) => `${c.name}(${c.start}:00-${c.end}:00)`).join(', ') || '未指定';
     const players = event.players.map((p:any) => `${p.name}${p.count > 1 ? `(+${p.count - 1})` : ''}`).join(', ');
     const totalPlayers = event.players.reduce((sum:number, p:any) => sum + (p.count || 1), 0);
-    return `📢 【打球提醒】\n📅 日期：${dateStr}\n📍 地點：${event.venue?.name}\n🎾 場地：${courts}\n👥 名單 (${totalPlayers}人)：${players}\n\n⚠️ 請大家記得帶水與毛巾，準時到場喔！`;
+    
+    // ✨ 新增：自動產生 Google Maps 搜尋連結 (encodeURIComponent 確保中文網址不會亂碼)
+    const mapLink = event.venue?.name 
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue?.name)}`
+      : '未指定地點';
+
+      return `📢 【打球提醒】\n📅 日期：${dateStr}\n📍 地點：${event.venue?.name} \n🎾 場地：${courts}\n👥 名單 (${totalPlayers}人)：${players}\n\n⚠️ 請大家記得帶水與毛巾，準時到場喔！( ${mapLink} ) `;
   };
 
   const getPaymentMsg = (dateStr: string, event: any) => {
@@ -417,14 +458,20 @@ export default function CalendarPage() {
       
       {/* 頂部導覽列 */}
       <div className="w-full max-w-md flex justify-between items-center mb-6 px-2">
-        <Link href="/" className="text-gray-400 text-sm hover:text-gray-600 transition-colors">◀ 返回</Link>
+        {/* ✨ 將 Link 改成 button，並綁定清除記憶的 handleLogout */}
+        <button onClick={handleLogout} className="text-gray-400 text-sm hover:text-gray-600 transition-colors">
+          ◀ 返回
+        </button>
         <div className="flex items-center space-x-4">
           <button onClick={handlePrevMonth} className="p-2 text-gray-400 hover:text-gray-700 active:scale-90 transition-transform">◀</button>
           <h2 className="text-xl font-bold text-gray-800 tracking-wide">{viewYear} 年 {viewMonth + 1} 月</h2>
           <button onClick={handleNextMonth} className="p-2 text-gray-400 hover:text-gray-700 active:scale-90 transition-transform">▶</button>
         </div>
         <div className="flex items-center space-x-3">
-          <Link href="/admin" className="text-xl opacity-50 hover:opacity-100 transition-opacity">⚙️</Link>
+          {/* ✨ 只有管理員才看得到這顆齒輪 */}
+          {isAdmin && (
+            <Link href="/admin" className="text-xl opacity-50 hover:opacity-100 transition-opacity">⚙️</Link>
+          )}
           <button onClick={openProfile} className={`w-9 h-9 rounded-full flex items-center justify-center text-base shadow-sm border-2 border-white hover:scale-105 active:scale-95 transition-transform ${currentFullUser.color}`}>
             {currentFullUser.avatar}
           </button>
@@ -449,7 +496,6 @@ export default function CalendarPage() {
             const totalPlayers = dayData.players?.reduce((sum: number, p: any) => sum + (p.count || 1), 0) || 0;
             const hasSignedUp = dayData.players?.some((p: any) => p.id === currentUser.id);
             const isBooked = dayData.isBooked || false;
-// ✨ 記得在 return 前面加上這行，判斷這天有沒有被勾選
             const isMultiSelected = multiSelectedDates.includes(dateStr);
 
             return (
@@ -820,7 +866,8 @@ export default function CalendarPage() {
                         </div>
                         
                         {selectedDayData.isBooked && (
-                          isThisUserHost ? (
+                        <>
+                          {isThisUserHost ? (
                             <span className="px-3 py-1.5 rounded-lg text-xs font-bold text-orange-500 bg-orange-50 border border-orange-100 shadow-sm">👑 主揪本人</span>
                           ) : (
                             <button 
@@ -834,8 +881,19 @@ export default function CalendarPage() {
                             >
                               {user.hasPaid ? '✅ 已付清' : '❌ 未付款'}
                             </button>
-                          )
-                        )}
+                          )}
+
+                          {/* ✨ 加上這段：管理員踢人按鈕 (放在付款按鈕旁邊) */}
+                          {isAdmin && user.id !== currentUser.id && (
+                            <button 
+                              onClick={() => handleAdminRemovePlayer(selectedDateStr, user)} 
+                              className="ml-2 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-red-50 text-red-600 border border-red-200 active:scale-95 transition-transform shadow-sm hover:bg-red-100"
+                            >
+                              刪除
+                            </button>
+                          )}
+                        </>
+                      )}
                       </div>
                     );
                   })}
@@ -938,20 +996,32 @@ export default function CalendarPage() {
                     </div>
                   </div>
 
+                  {/* 收款帳號資訊區塊 */}
                   <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">我的收款帳號</label>
-                    <p className="text-xs text-gray-500 mb-3">當你擔任主揪時，系統會自動將此資訊顯示給球友看，方便大家匯款。</p>
-                    <textarea 
-                      value={editPaymentInfo} 
-                      onChange={e => setEditPaymentInfo(e.target.value)} 
-                      placeholder="例：台新銀行 (812) 1234-5678-9012&#10;Line Pay: (貼上你的轉帳連結)"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 h-28"
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      🏦 我的收款帳號資訊 (主揪催款用)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editPaymentInfo}
+                      onChange={(e) => setEditPaymentInfo(e.target.value)}
+                      placeholder="例如：台新 (812) 2888-xxx-xxx 或 LINE Pay 連結"
+                      /* ✨ 關鍵修改：將 text-gray-400 改為 text-gray-800 font-bold，確保填寫的內容清晰易讀 */
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-800 font-bold placeholder-gray-400 focus:outline-none focus:border-blue-400 transition-colors resize-none"
                     />
                   </div>
 
                   <button onClick={handleSaveProfile} className="w-full py-4 bg-gray-800 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform">
                     儲存個人資料
                   </button>
+                  <div className="mt-8 pt-4 border-t border-gray-100">
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full py-3 bg-gray-100 text-gray-600 font-bold rounded-xl active:scale-95 transition-transform border border-gray-200"
+                    >
+                      🔄 切換帳號 / 登出
+                    </button>
+                  </div>
                 </div>
               )}
 

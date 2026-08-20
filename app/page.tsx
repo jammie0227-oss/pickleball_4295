@@ -48,6 +48,7 @@ export default function Home() {
 
   // 1. 即時監聽 Firebase 上的「users」名單
   useEffect(() => {
+    // 1. 保留你原本的：監聽資料庫，抓取使用者清單
     const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
       const loadedUsers: any[] = [];
       snapshot.forEach((doc) => {
@@ -55,8 +56,23 @@ export default function Home() {
       });
       setUsers(loadedUsers);
     });
+
+    // ✨ 2. 新增這段：檢查 localStorage，如果有紀錄就自動跳轉到日曆
+    const savedUserStr = localStorage.getItem('pickleball_user');
+    if (savedUserStr) {
+      try {
+        const savedUser = JSON.parse(savedUserStr);
+        if (savedUser && savedUser.id) {
+          router.push('/calendar'); // 自動轉向日曆頁面
+        }
+      } catch (e) {
+        console.error('解析使用者資料失敗', e);
+      }
+    }
+
+    // 3. 離開畫面時清除監聽
     return () => unsubscribe();
-  }, []);
+  }, [router]); // ✨ 記得在陣列裡補上 router
 
   // 2. 計算出「還沒被選走」的動物
   const usedAvatars = users.map(u => u.avatar);
