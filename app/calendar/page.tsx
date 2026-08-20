@@ -302,7 +302,6 @@ export default function CalendarPage() {
     setIsProfileOpen(true);
   };
 
-  // ✨ 替換整段 handleSaveProfile
   const handleSaveProfile = async () => {
     if (!editName.trim()) return alert('暱稱不能為空！');
     if (!editAvatar) return alert('請選擇一個頭像！');
@@ -557,8 +556,14 @@ export default function CalendarPage() {
                   
                   {/* 下方原本顯示人數的區塊維持不動 */}
                   {totalPlayers > 0 ? (
-                    <span className={`text-[10px] font-bold leading-none flex items-center space-x-0.5 mt-0.5 ${hasSignedUp ? 'text-blue-700' : 'text-gray-500'}`}>
-                      <span>👥</span><span>{totalPlayers}</span>
+                    <span className={`text-[11px] font-bold leading-none flex items-center justify-center mt-1 ${hasSignedUp ? 'text-blue-700' : 'text-gray-500'}`}>
+                      <span>👤</span>
+                      <span className="ml-0.5">{totalPlayers}</span>
+                      
+                      {/* 如果自己有報名，就在旁邊加上自己的頭像 */}
+                      {hasSignedUp && currentFullUser?.avatar && (
+                        <span className="ml-1 text-[12px] drop-shadow-sm">{currentFullUser.avatar}</span>
+                      )}
                     </span>
                   ) : null}
                 </div>
