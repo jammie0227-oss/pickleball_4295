@@ -32,6 +32,7 @@ export default function AdminPage() {
     const unsubVenues = onSnapshot(collection(db, 'venues'), (snapshot) => {
       const loadedVenues: any[] = [];
       snapshot.forEach((doc) => { loadedVenues.push({ id: doc.id, ...doc.data() }); });
+      loadedVenues.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       setVenues(loadedVenues);
     });
 
@@ -98,7 +99,7 @@ export default function AdminPage() {
     if (!name.trim() || courtNames.length === 0) return alert('請填寫場地名稱，並至少新增一個場地選項！');
     const venueData = { name: name.trim(), mapUrl: mapUrl.trim(), bookingUrl: bookingUrl.trim(), courtNames, maxCourts: courtNames.length, weekdayPricing, saturdayPricing, sundayPricing };
     if (editingId) await updateDoc(doc(db, 'venues', editingId), venueData);
-    else await addDoc(collection(db, 'venues'), venueData);
+    else await addDoc(collection(db, 'venues'), { ...venueData, order: venues.length });
     setIsModalOpen(false);
   };
 
@@ -106,7 +107,20 @@ export default function AdminPage() {
     if (confirm('確定要刪除這個場地嗎？')) await deleteDoc(doc(db, 'venues', id));
   };
 
-  // --- ✨ 成員管理邏輯 ---
+  // ✨ 場地排序：交換兩個相鄰場地的 order 值
+  const handleMoveVenue = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= venues.length) return;
+    const a = venues[index];
+    const b = venues[targetIndex];
+    const orderA = a.order ?? index;
+    const orderB = b.order ?? targetIndex;
+    await Promise.all([
+      updateDoc(doc(db, 'venues', a.id), { order: orderB }),
+      updateDoc(doc(db, 'venues', b.id), { order: orderA }),
+    ]);
+  };
+
   // --- ✨ 成員管理邏輯 (升級版：自動清除未來報名紀錄) ---
   const handleDeleteUser = async (id: string, userName: string) => {
     if (confirm(`確定要刪除「${userName}」的資料嗎？這個操作無法復原！\n(系統將自動把他從「未來」的活動中移除，但會保留在過去的歷史紀錄中)`)) {
@@ -247,7 +261,7 @@ export default function AdminPage() {
               {venues.length === 0 ? (
                 <div className="text-center text-gray-400 py-6 text-sm border-2 border-dashed border-gray-100 rounded-2xl">目前還沒有設定任何場地喔！</div>
               ) : (
-                venues.map((venue) => {
+                venues.map((venue, idx) => {
                   const blocks = getSummaryBlocks(venue);
                   const { min, max } = getPriceExtremes(venue);
 
@@ -267,6 +281,20 @@ export default function AdminPage() {
                           </div>
                         </div>
                         <div className="flex space-x-1.5 shrink-0 ml-2">
+                          {/* ✨ 新增：往上移按鈕 (第一名不顯示) */}
+                          {idx > 0 && (
+                            <button onClick={() => handleMoveVenue(idx, 'up')} className="w-7 h-7 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-gray-500 shadow-sm active:scale-95 transition-transform" title="往上移">
+                              🔼
+                            </button>
+                          )}
+                          
+                          {/* ✨ 新增：往下移按鈕 (最後一名不顯示) */}
+                          {idx < venues.length - 1 && (
+                            <button onClick={() => handleMoveVenue(idx, 'down')} className="w-7 h-7 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-gray-500 shadow-sm active:scale-95 transition-transform" title="往下移">
+                              🔽
+                            </button>
+                          )}
+
                           <button onClick={() => openEditModal(venue)} className="w-7 h-7 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-gray-500 shadow-sm active:scale-95">✏️</button>
                           <button onClick={() => handleDelete(venue.id)} className="w-7 h-7 bg-red-50 border border-red-100 rounded-lg flex items-center justify-center text-red-500 shadow-sm active:scale-95">🗑️</button>
                         </div>

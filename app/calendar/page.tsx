@@ -59,6 +59,7 @@ export default function CalendarPage() {
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [multiSelectedDates, setMultiSelectedDates] = useState<string[]>([]);
   const [multiSelectCount, setMultiSelectCount] = useState(1);
+  const [adminSignupTarget, setAdminSignupTarget] = useState<string>('');
 
   // ✨ 2. 多天報名的送出函式 (放在 handleBecomeHost 的上方或附近即可)
   const handleMultiSubmit = async () => {
@@ -80,6 +81,19 @@ export default function CalendarPage() {
     setMultiSelectedDates([]);
     setMultiSelectCount(1);
   };
+  // ✨ 管理員專屬：幫別人報名（任何日期，包括已過期）
+  const handleAdminSignup = async (targetUserId: string, count: number) => {
+    if (!selectedDateStr || !targetUserId) return;
+    const targetUser = allUsers.find(u => u.id === targetUserId);
+    if (!targetUser) return;
+    const docRef = doc(db, 'events', selectedDateStr);
+    const currentPlayers = (monthData[selectedDateStr] || { players: [] }).players;
+    const updatedPlayers = currentPlayers.filter((p: any) => p.id !== targetUserId);
+    updatedPlayers.push({ ...targetUser, count, hasPaid: false });
+    await setDoc(docRef, { players: updatedPlayers }, { merge: true });
+    alert(`✅ 已成功幫 ${targetUser.name} 報名！`);
+  };
+
   // ✨ 管理員專屬：強制幫別人取消報名
   const handleAdminRemovePlayer = async (dateStr: string, playerToRemove: any) => {
     if (!confirm(`【管理員權限】\n確定要強制取消「${playerToRemove.name}」的報名嗎？`)) return;
@@ -151,9 +165,14 @@ export default function CalendarPage() {
     });
     const unsubVenues = onSnapshot(collection(db, 'venues'), (snapshot) => {
       const loadedVenues: any[] = [];
-      snapshot.forEach((doc) => { loadedVenues.push({ id: doc.id, ...doc.data() }); });
+      snapshot.forEach((doc) => {
+        loadedVenues.push({ id: doc.id, ...doc.data() });
+      });
+      
+      // ✨ 加上這行：讓前台日曆跟後台一樣，依照 order 數字來排隊
+      loadedVenues.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      
       setVenues(loadedVenues);
-      if (loadedVenues.length > 0 && !hostVenue) setHostVenue(loadedVenues[0].id);
     });
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const loadedUsers: any[] = [];
@@ -522,7 +541,9 @@ export default function CalendarPage() {
                   ${isWeekend && !hasSignedUp ? 'bg-gray-50' : ''}
                   ${hasSignedUp && !isMultiSelectMode ? 'bg-blue-50/50' : ''}
                   ${isPast ? 'opacity-60 grayscale' : ''}
-                  ${isMultiSelectMode && isMultiSelected ? 'bg-blue-100 border-2 border-blue-500 shadow-inner' : 'border-2 border-transparent'}
+                  ${isMultiSelectMode && isMultiSelected ? 'bg-blue-100 border-2 border-blue-500 shadow-inner' : ''}
+                  ${!isMultiSelectMode && hasSignedUp && isBooked ? 'ring-2 ring-emerald-400' : ''}
+                  ${!isMultiSelectMode && !(hasSignedUp && isBooked) ? 'border-2 border-transparent' : ''}
                 `}
               >
                 {/* ✨ 多選模式的打勾符號 */}
@@ -609,30 +630,35 @@ export default function CalendarPage() {
 
       {/* --- ✨ 下方新增：動態場地與課表資訊區塊 --- */}
       <div className="w-full max-w-md mt-8 space-y-4 pb-12">
-        <h3 className="text-gray-800 font-bold flex items-center text-base px-2">
-          <span className="text-emerald-500 mr-2 text-xl">🏟️</span> 常見場地資訊
-        </h3>
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-gray-800 font-bold flex items-center text-base">
+            <span className="text-emerald-500 mr-2 text-xl">🏟️</span> 場地資訊
+          </h3>
+          {venues.length > 0 && (
+            <button
+              onClick={() => setExpandedVenueId(expandedVenueId === 'ALL' ? null : 'ALL')}
+              className="text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg active:scale-95 transition-transform shadow-sm"
+            >
+              {expandedVenueId === 'ALL' ? '📋 收起價目表' : '📋 展開價目表'}
+            </button>
+          )}
+        </div>
         {venues.length === 0 ? (
           <div className="text-center text-gray-400 py-6 text-sm bg-white rounded-2xl shadow-sm border border-gray-100">載入中或尚無場地資料</div>
         ) : (
           venues.map(venue => {
-            const isExpanded = expandedVenueId === venue.id;
+            const isExpanded = expandedVenueId === 'ALL';
             const blocks = getSummaryBlocks(venue);
             const { min, max } = getPriceExtremes(venue);
 
             return (
               <div key={venue.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 transition-all">
-                <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedVenueId(isExpanded ? null : venue.id)}>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-bold text-gray-800 text-sm">{venue.name}</span>
-                    <div className="flex space-x-1" onClick={e => e.stopPropagation()}>
-                      {venue.mapUrl && <a href={venue.mapUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="導航">🗺️</a>}
-                      {venue.bookingUrl && <a href={venue.bookingUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="預約">🔗</a>}
-                    </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-gray-800 text-sm">{venue.name}</span>
+                  <div className="flex space-x-1">
+                    {venue.mapUrl && <a href={venue.mapUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="導航">🗺️</a>}
+                    {venue.bookingUrl && <a href={venue.bookingUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="預約">🔗</a>}
                   </div>
-                  <button className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform pointer-events-none">
-                    {isExpanded ? '收起課表' : '查看課表'}
-                  </button>
                 </div>
 
                 {isExpanded && (
@@ -661,12 +687,7 @@ export default function CalendarPage() {
                         </div>
                       ))}
                     </div>
-                    {min !== max && min > 0 && (
-                      <div className="flex justify-end space-x-3 mt-2 text-[10px]">
-                        <span className="flex items-center"><span className="w-2 h-2 bg-emerald-300 rounded mr-1"></span>最低價</span>
-                        <span className="flex items-center"><span className="w-2 h-2 bg-rose-300 rounded mr-1"></span>最高價</span>
-                      </div>
-                    )}
+
                   </div>
                 )}
               </div>
@@ -674,6 +695,7 @@ export default function CalendarPage() {
           })
         )}
       </div>
+
 
       {/* --- 日曆彈跳面板 --- */}
       {selectedDateStr && (
@@ -934,10 +956,39 @@ export default function CalendarPage() {
             </div>
 
             <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white to-transparent pointer-events-none">
-              <div className="pointer-events-auto">
-                {isPastSelected ? (
+              <div className="pointer-events-auto space-y-2">
+                {/* ✨ 管理員專屬：在任何日期都可幫別人報名 */}
+                {isAdmin && (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-3 space-y-2">
+                    <div className="text-[11px] font-bold text-red-700 flex items-center">
+                      <span className="mr-1">⚙️</span> 管理員幫人報名
+                    </div>
+                    <div className="flex space-x-2">
+                      <select
+                        value={adminSignupTarget}
+                        onChange={e => setAdminSignupTarget(e.target.value)}
+                        className="flex-1 bg-white border border-red-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none text-gray-700"
+                      >
+                        <option value="">選擇成員...</option>
+                        {allUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.avatar} {u.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => adminSignupTarget && handleAdminSignup(adminSignupTarget, 1)}
+                        disabled={!adminSignupTarget}
+                        className="px-4 py-2 bg-red-500 text-white font-bold rounded-xl text-sm active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        報名
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 一般報名按鈕 */}
+                {isPastSelected && !isAdmin ? (
                   <button disabled className="w-full py-4 bg-gray-100 text-gray-400 font-bold rounded-2xl cursor-not-allowed shadow-sm border border-gray-200">活動已結束</button>
-                ) : !hasSignedUpSelected ? (
+                ) : isPastSelected && isAdmin ? null : !hasSignedUpSelected ? (
                   <button onClick={() => handleSignup(1)} className="w-full py-4 bg-gray-800 text-white font-bold rounded-2xl shadow-lg hover:bg-gray-700 active:scale-95 transition-transform flex items-center justify-center space-x-2">
                     <span>✋ 我要報名</span>
                   </button>
