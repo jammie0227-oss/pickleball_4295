@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [name, setName] = useState('');
   const [mapUrl, setMapUrl] = useState('');
   const [bookingUrl, setBookingUrl] = useState('');
+  const [note, setNote] = useState('');
   const [courtNames, setCourtNames] = useState<string[]>([]);
   const [newCourtInput, setNewCourtInput] = useState('');
 
@@ -48,7 +49,7 @@ export default function AdminPage() {
 
   // --- 場地管理邏輯 ---
   const openAddModal = () => {
-    setEditingId(null); setName(''); setMapUrl(''); setBookingUrl(''); setCourtNames([]);
+    setEditingId(null); setName(''); setMapUrl(''); setBookingUrl(''); setCourtNames([]);setNote('');
     setWeekdayPricing(getEmptyDayPricing()); setSaturdayPricing(getEmptyDayPricing()); setSundayPricing(getEmptyDayPricing());
     setSelectedHours([]); setIsModalOpen(true);
   };
@@ -56,6 +57,7 @@ export default function AdminPage() {
   const openEditModal = (venue: any) => {
     setEditingId(venue.id); setName(venue.name); setMapUrl(venue.mapUrl || ''); setBookingUrl(venue.bookingUrl || '');
     setCourtNames(venue.courtNames || []);
+    setNote(venue.note || '');
     setWeekdayPricing(venue.weekdayPricing || getEmptyDayPricing());
     setSaturdayPricing(venue.saturdayPricing || venue.weekendPricing || getEmptyDayPricing());
     setSundayPricing(venue.sundayPricing || venue.weekendPricing || getEmptyDayPricing());
@@ -97,7 +99,7 @@ export default function AdminPage() {
 
   const handleSave = async () => {
     if (!name.trim() || courtNames.length === 0) return alert('請填寫場地名稱，並至少新增一個場地選項！');
-    const venueData = { name: name.trim(), mapUrl: mapUrl.trim(), bookingUrl: bookingUrl.trim(), courtNames, maxCourts: courtNames.length, weekdayPricing, saturdayPricing, sundayPricing };
+    const venueData = { name: name.trim(), mapUrl: mapUrl.trim(), bookingUrl: bookingUrl.trim(), note: note.trim(), courtNames, maxCourts: courtNames.length, weekdayPricing, saturdayPricing, sundayPricing };
     if (editingId) await updateDoc(doc(db, 'venues', editingId), venueData);
     else await addDoc(collection(db, 'venues'), { ...venueData, order: venues.length });
     setIsModalOpen(false);
@@ -448,13 +450,27 @@ export default function AdminPage() {
               <button onClick={() => setIsModalOpen(false)} className="absolute right-6 top-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 pb-48">
-              <h3 className="text-2xl font-bold text-gray-800 tracking-tight mb-6 mt-2">{editingId ? '編輯場地費率' : '新增場地費率'}</h3>
+              <h3 className="text-2xl font-bold text-gray-800 tracking-tight mb-6 mt-2">{editingId ? '編輯場地資訊' : '新增場地費率'}</h3>
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1.5">場地名稱 (必填)</label><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="例: 竹北運動公園" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-400" /></div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1.5">場地名稱 (必填)</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="例: 竹北運動公園" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 font-bold focus:outline-none focus:border-emerald-400" />
+                  </div>
                   <div className="flex space-x-3">
-                    <div className="flex-1"><label className="block text-xs font-bold text-gray-500 mb-1.5">🗺️ 地圖導航網址</label><input type="url" value={mapUrl} onChange={e => setMapUrl(e.target.value)} placeholder="https://maps..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-emerald-400" /></div>
-                    <div className="flex-1"><label className="block text-xs font-bold text-gray-500 mb-1.5">🔗 官方預約網址</label><input type="url" value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} placeholder="https://..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-emerald-400" /></div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-gray-500 mb-1.5">🗺️ 地圖導航網址</label>
+                      <input type="url" value={mapUrl} onChange={e => setMapUrl(e.target.value)} placeholder="https://maps..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 font-bold focus:outline-none focus:border-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-gray-500 mb-1.5">🔗 官方預約網址</label>
+                      <input type="url" value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} placeholder="https://..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 font-bold focus:outline-none focus:border-emerald-400" />
+                    </div>
+                  </div>
+                  {/* ✨ 新增：備註欄位 */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1.5">📝 場地備註資訊</label>
+                    <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="例: 停車場在後門、需先到櫃台換證" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 font-bold focus:outline-none focus:border-emerald-400" />
                   </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">

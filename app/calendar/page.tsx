@@ -447,15 +447,23 @@ export default function CalendarPage() {
 
   const getReminderMsg = (dateStr: string, event: any) => {
     const courts = event.hostCourtsInfo?.map((c:any) => `${c.name}(${c.start}:00-${c.end}:00)`).join(', ') || '未指定';
-    const players = event.players.map((p:any) => `${p.name}${p.count > 1 ? `(+${p.count - 1})` : ''}`).join(', ');
+    
+    // ✨ 調整 1：將報名人數直接顯示為選擇的數字 (例如報名 2 人就顯示 +2)
+    const players = event.players.map((p:any) => `${p.name}${p.count > 1 ? `(+${p.count})` : ''}`).join(', ');
+    
     const totalPlayers = event.players.reduce((sum:number, p:any) => sum + (p.count || 1), 0);
     
-    // ✨ 新增：自動產生 Google Maps 搜尋連結 (encodeURIComponent 確保中文網址不會亂碼)
     const mapLink = event.venue?.name 
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue?.name)}`
       : '未指定地點';
 
-      return `📢 【打球提醒】\n📅 日期：${dateStr}\n📍 地點：${event.venue?.name} \n🎾 場地：${courts}\n👥 名單 (${totalPlayers}人)：${players}\n\n⚠️ 請大家記得帶水與毛巾，準時到場喔！( ${mapLink} ) `;
+    // ✨ 調整 2：算出星期幾並加在日期後面
+    const dateObj = new Date(dateStr);
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    const dayOfWeek = dayNames[dateObj.getDay()];
+    const displayDate = `${dateStr} (${dayOfWeek})`;
+
+    return `📢 【打球提醒】\n📅 日期：${displayDate}\n📍 地點：${event.venue?.name} ( ${mapLink} )\n🎾 場地：${courts}\n👥 名單 (${totalPlayers}人)：${players}\n\n⚠️ 請大家記得帶水與毛巾，準時到場喔！`;
   };
 
   const getPaymentMsg = (dateStr: string, event: any) => {
@@ -658,6 +666,11 @@ export default function CalendarPage() {
                   <div className="flex space-x-1">
                     {venue.mapUrl && <a href={venue.mapUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="導航">🗺️</a>}
                     {venue.bookingUrl && <a href={venue.bookingUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="預約">🔗</a>}
+                    {venue.note && (
+                      <span className="ml-1 px-2 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold rounded-lg shadow-sm truncate max-w-[120px]">
+                        {venue.note}
+                      </span>
+                    )}
                   </div>
                 </div>
 
