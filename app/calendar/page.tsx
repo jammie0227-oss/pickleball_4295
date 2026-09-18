@@ -460,7 +460,7 @@ export default function CalendarPage() {
     const displayDate = `${dateStr} (${dayOfWeek})`;
 
     // ✨ 請替換成你們專屬的網址
-    const appUrl = 'https://你的網址.vercel.app';
+    const appUrl = 'https://pickleball-4295.vercel.app';
 
     // 移除了帶水提醒，加上系統連結
     return `📢 【打球提醒】\n📅 日期：${displayDate}\n📍 地點：${event.venue?.name} ( ${mapLink} )\n🎾 場地：${courts}\n👥 名單 (${totalPlayers}人)：${players}\n🔗 系統連結：${appUrl}`;
@@ -482,7 +482,7 @@ export default function CalendarPage() {
     const displayDate = `${dateStr} (${dayOfWeek})`;
 
     // ✨ 請替換成你們專屬的網址
-    const appUrl = 'https://你的網址.vercel.app';
+    const appUrl = 'https://pickleball-4295.vercel.app';
 
     // 重新排版：總費用 -> 分攤人數 -> 每人應繳
     return `💰 【場地費結算】\n📅 日期：${displayDate}\n🏟️ 總計費用：$${totalPrice}\n👥 分攤人數：${totalPlayers} 人\n💵 每人應繳：$${pricePerPerson}\n\n📝 繳費名單：${players}\n🏦 收款資訊：\n${bankInfo}\n\n🔗 系統連結：${appUrl}`;
