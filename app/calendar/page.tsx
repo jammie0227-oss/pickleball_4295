@@ -447,36 +447,45 @@ export default function CalendarPage() {
 
   const getReminderMsg = (dateStr: string, event: any) => {
     const courts = event.hostCourtsInfo?.map((c:any) => `${c.name}(${c.start}:00-${c.end}:00)`).join(', ') || '未指定';
-    
-    // ✨ 調整 1：將報名人數直接顯示為選擇的數字 (例如報名 2 人就顯示 +2)
     const players = event.players.map((p:any) => `${p.name}${p.count > 1 ? `(+${p.count})` : ''}`).join(', ');
-    
     const totalPlayers = event.players.reduce((sum:number, p:any) => sum + (p.count || 1), 0);
     
     const mapLink = event.venue?.name 
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue?.name)}`
       : '未指定地點';
 
-    // ✨ 調整 2：算出星期幾並加在日期後面
     const dateObj = new Date(dateStr);
     const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
     const dayOfWeek = dayNames[dateObj.getDay()];
     const displayDate = `${dateStr} (${dayOfWeek})`;
 
-    return `📢 【打球提醒】\n📅 日期：${displayDate}\n📍 地點：${event.venue?.name} ( ${mapLink} )\n🎾 場地：${courts}\n👥 名單 (${totalPlayers}人)：${players}\n\n⚠️ 請大家記得帶水與毛巾，準時到場喔！`;
+    // ✨ 請替換成你們專屬的網址
+    const appUrl = 'https://你的網址.vercel.app';
+
+    // 移除了帶水提醒，加上系統連結
+    return `📢 【打球提醒】\n📅 日期：${displayDate}\n📍 地點：${event.venue?.name} ( ${mapLink} )\n🎾 場地：${courts}\n👥 名單 (${totalPlayers}人)：${players}\n🔗 系統連結：${appUrl}`;
   };
 
   const getPaymentMsg = (dateStr: string, event: any) => {
-    const hostLiveInfo = allUsers.find(u => u.id === event.host?.id);
-    const paymentInfo = hostLiveInfo?.paymentInfo || '主揪尚未設定收款帳號';
-    const totalPlayersCount = event.players.reduce((sum: number, p: any) => sum + (p.count || 1), 0);
-    const pricePerPerson = Math.ceil(event.totalPrice / (totalPlayersCount || 1));
-    const unpaidPlayers = event.players.filter((p: any) => !p.hasPaid && p.id !== event.host?.id);
+    const players = event.players.map((p:any) => `${p.name}${p.count > 1 ? `(+${p.count})` : ''}`).join(', ');
+    const totalPlayers = event.players.reduce((sum:number, p:any) => sum + (p.count || 1), 0);
     
-    if (unpaidPlayers.length === 0) return `🎉 【場地費結算】\n${dateStr} 於 ${event.venue?.name} 的場地費，大家都已經付清囉！感謝配合！`;
+    // 計算費用
+    const totalPrice = event.totalPrice || 0;
+    const pricePerPerson = totalPlayers > 0 ? Math.ceil(totalPrice / totalPlayers) : 0;
     
-    const unpaidList = unpaidPlayers.map((p:any) => `- ${p.name}: $${(p.count || 1) * pricePerPerson}`).join('\n');
-    return `💰 【場地費結算】\n📅 日期：${dateStr}\n📍 地點：${event.venue?.name}\n💵 每人分攤：$${pricePerPerson}\n\n🏦 匯款資訊：\n${paymentInfo}\n\n👀 尚未付款名單：\n${unpaidList}\n\n✅ 匯款後請去系統點擊「已付清」，或在群組說一聲喔！`;
+    const bankInfo = event.host?.paymentInfo || '主揪尚未設定收款帳號';
+    
+    const dateObj = new Date(dateStr);
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    const dayOfWeek = dayNames[dateObj.getDay()];
+    const displayDate = `${dateStr} (${dayOfWeek})`;
+
+    // ✨ 請替換成你們專屬的網址
+    const appUrl = 'https://你的網址.vercel.app';
+
+    // 重新排版：總費用 -> 分攤人數 -> 每人應繳
+    return `💰 【場地費結算】\n📅 日期：${displayDate}\n🏟️ 總計費用：$${totalPrice}\n👥 分攤人數：${totalPlayers} 人\n💵 每人應繳：$${pricePerPerson}\n\n📝 繳費名單：${players}\n🏦 收款資訊：\n${bankInfo}\n\n🔗 系統連結：${appUrl}`;
   };
   // ------------------------------------
   return (
