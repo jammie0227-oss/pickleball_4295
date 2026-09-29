@@ -787,12 +787,13 @@ export default function CalendarPage() {
                   </div>
 
                   <div className="bg-white/60 p-2 rounded-xl border border-emerald-100 space-y-1.5 mt-2">
-                    {selectedDayData.hostCourtsInfo?.map((c: any) => (
+                    {selectedDayData.hostCourtsInfo && selectedDayData.hostCourtsInfo.length > 0 ? (
+                      selectedDayData.hostCourtsInfo.map((c: any) => (
                         <div key={c.name} className="flex justify-between items-center text-sm px-2 py-1 bg-white rounded-lg shadow-sm border border-emerald-50">
                           <span className="font-bold text-emerald-700">🎾 {c.name}</span>
                           <span className="font-bold text-gray-700">{c.start}:00 - {c.end}:00</span>
                         </div>
-                      ))}
+                      ))
                     ) : (
                       <span className="text-xs text-gray-500">尚無詳細場地時間資料</span>
                     )}
