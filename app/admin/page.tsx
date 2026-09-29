@@ -99,7 +99,18 @@ export default function AdminPage() {
 
   const handleSave = async () => {
     if (!name.trim() || courtNames.length === 0) return alert('請填寫場地名稱，並至少新增一個場地選項！');
-    const venueData = { name: name.trim(), mapUrl: mapUrl.trim(), bookingUrl: bookingUrl.trim(), note: note.trim(), courtNames, maxCourts: courtNames.length, weekdayPricing, saturdayPricing, sundayPricing };
+    
+    // ✨ 加上了強力防呆：確保就算是 undefined 也會被轉成空字串，不會觸發 .trim() 當機
+    const venueData = { 
+      name: (name || '').trim(), 
+      mapUrl: (mapUrl || '').trim(), 
+      bookingUrl: (bookingUrl || '').trim(), 
+      note: (note || '').trim(), 
+      courtNames, 
+      maxCourts: courtNames.length, 
+      weekdayPricing, saturdayPricing, sundayPricing 
+    };
+    
     if (editingId) await updateDoc(doc(db, 'venues', editingId), venueData);
     else await addDoc(collection(db, 'venues'), { ...venueData, order: venues.length });
     setIsModalOpen(false);
