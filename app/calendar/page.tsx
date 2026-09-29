@@ -675,7 +675,7 @@ export default function CalendarPage() {
                   <div className="flex space-x-1">
                     {venue.mapUrl && <a href={venue.mapUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="導航">🗺️</a>}
                     {venue.bookingUrl && <a href={venue.bookingUrl} target="_blank" rel="noreferrer" className="w-7 h-7 bg-gray-50 border border-gray-100 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shadow-sm text-xs" title="預約">🔗</a>}
-                    {venue.note && (
+                    {typeof venue.note === 'string' && venue.note.trim() !== '' && (
                       <span className="ml-1 px-2 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold rounded-lg shadow-sm truncate max-w-[120px]">
                         {venue.note}
                       </span>
