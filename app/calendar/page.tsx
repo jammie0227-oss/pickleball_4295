@@ -447,8 +447,8 @@ export default function CalendarPage() {
 
   const getReminderMsg = (dateStr: string, event: any) => {
     const courts = event.hostCourtsInfo?.map((c:any) => `${c.name}(${c.start}:00-${c.end}:00)`).join(', ') || '未指定';
-    const players = event.players.map((p:any) => `${p.name}${p.count > 1 ? `(+${p.count})` : ''}`).join(', ');
-    const totalPlayers = event.players.reduce((sum:number, p:any) => sum + (p.count || 1), 0);
+    const players = (event.players || []).map((p:any) => `${p.name}${p.count > 1 ? `(+${p.count})` : ''}`).join(', ');
+    const totalPlayers = (event.players || []).reduce((sum:number, p:any) => sum + (p.count || 1), 0);
     
     const mapLink = event.venue?.name 
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue?.name)}`
@@ -787,13 +787,12 @@ export default function CalendarPage() {
                   </div>
 
                   <div className="bg-white/60 p-2 rounded-xl border border-emerald-100 space-y-1.5 mt-2">
-                    {selectedDayData.hostCourtsInfo ? (
-                      selectedDayData.hostCourtsInfo.map((c: any) => (
+                    {selectedDayData.hostCourtsInfo?.map((c: any) => (
                         <div key={c.name} className="flex justify-between items-center text-sm px-2 py-1 bg-white rounded-lg shadow-sm border border-emerald-50">
                           <span className="font-bold text-emerald-700">🎾 {c.name}</span>
                           <span className="font-bold text-gray-700">{c.start}:00 - {c.end}:00</span>
                         </div>
-                      ))
+                      ))}
                     ) : (
                       <span className="text-xs text-gray-500">尚無詳細場地時間資料</span>
                     )}
@@ -856,10 +855,10 @@ export default function CalendarPage() {
                       </div>
                     </div>
 
-                    {hostCourtsInfo.length > 0 && (
+                    {(hostCourtsInfo || []).length > 0 && (
                       <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-3">
                         <label className="block text-xs font-bold text-gray-500">個別設定時間</label>
-                        {hostCourtsInfo.map(court => (
+                        {(hostCourtsInfo || []).map(court => (
                           <div key={court.name} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
                             <span className="font-bold text-sm text-gray-700">{court.name}</span>
                             <div className="flex items-center space-x-1">
@@ -868,7 +867,6 @@ export default function CalendarPage() {
                               </select>
                               <span className="text-gray-400 text-xs">-</span>
                               <select value={court.end} onChange={e => handleCourtTimeChange(court.name, 'end', Number(e.target.value))} className="bg-gray-50 border border-gray-200 rounded px-1 py-1 text-xs focus:outline-none">
-                                {/* 💡 修改這裡：只禁止選「跟開始一樣」的時間，其他包含跨夜都可以選！ */}
                                 {timeOptions.map(t => <option key={`end-${t}`} value={t} disabled={t === court.start}>{t}:00</option>)}
                               </select>
                             </div>
